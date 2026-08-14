@@ -1,8 +1,10 @@
 import { Home } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { setHomeLocation, setUnit, setWindUnit } from "../features/appSlice";
 
 export function SettingsView() {
-  const { settings, setUnit, setWindUnit, setHomeLocation } = useAppContext();
+  const dispatch = useAppDispatch();
+  const settings = useAppSelector((state) => state.app.settings);
 
   return (
     <div className="view">
@@ -14,13 +16,13 @@ export function SettingsView() {
         <div className="segmented">
           <button
             className={settings.unit === "celsius" ? "segmented-active" : ""}
-            onClick={() => setUnit("celsius")}
+            onClick={() => dispatch(setUnit("celsius"))}
           >
             Celsius (°C)
           </button>
           <button
             className={settings.unit === "fahrenheit" ? "segmented-active" : ""}
-            onClick={() => setUnit("fahrenheit")}
+            onClick={() => dispatch(setUnit("fahrenheit"))}
           >
             Fahrenheit (°F)
           </button>
@@ -32,13 +34,13 @@ export function SettingsView() {
         <div className="segmented">
           <button
             className={settings.windUnit === "kmh" ? "segmented-active" : ""}
-            onClick={() => setWindUnit("kmh")}
+            onClick={() => dispatch(setWindUnit("kmh"))}
           >
             km/h
           </button>
           <button
             className={settings.windUnit === "mph" ? "segmented-active" : ""}
-            onClick={() => setWindUnit("mph")}
+            onClick={() => dispatch(setWindUnit("mph"))}
           >
             mph
           </button>
@@ -60,7 +62,7 @@ export function SettingsView() {
                 </div>
               </div>
             </div>
-            <button className="text-button text-button--danger" onClick={() => setHomeLocation(null)}>
+            <button className="text-button text-button--danger" onClick={() => dispatch(setHomeLocation(null))}>
               Clear
             </button>
           </div>

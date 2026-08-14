@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
 import { CurrentWeather } from "./components/CurrentWeather";
@@ -7,11 +7,13 @@ import { DailyForecast } from "./components/DailyForecast";
 import { LocationsView } from "./components/LocationsView";
 import { FavoritesView } from "./components/FavoritesView";
 import { SettingsView } from "./components/SettingsView";
-import { AppProvider, useAppContext } from "./context/AppContext";
-import { fetchWeather } from "./lib/weatherApi";
-import type { GeoLocation, ViewKey, WeatherBundle } from "./types";
+import { AuthPage } from "./components/AuthPage";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { useAuth } from "./context/authContextCore";
+import { addFavorite, addRecent, removeFavorite } from "./features/appSlice";
+import { useGetWeatherQuery } from "./services/weatherApi";
+import type { GeoLocation, ViewKey } from "./types";
 
-const RECENTS_KEY = "weatherly.recents.v1";
 const DEFAULT_CITY: GeoLocation = {
   id: 202061,
   name: "Kigali",
@@ -22,74 +24,49 @@ const DEFAULT_CITY: GeoLocation = {
   timezone: "Africa/Kigali",
 };
 
-function loadRecents(): GeoLocation[] {
-  try {
-    const raw = localStorage.getItem(RECENTS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // ignore
-  }
-  return [];
-}
+export default function App() {
+  const { currentUser, loading, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const settings = useAppSelector((state) => state.app.settings);
+  const favorites = useAppSelector((state) => state.app.favorites);
 
-function AppShell() {
-  const { settings, isFavorite, addFavorite, removeFavorite } = useAppContext();
   const [view, setView] = useState<ViewKey>("home");
   const [activeLocation, setActiveLocation] = useState<GeoLocation>(
     settings.homeLocation ?? DEFAULT_CITY
   );
-  const [bundle, setBundle] = useState<WeatherBundle | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recents, setRecents] = useState<GeoLocation[]>(loadRecents);
 
-  useEffect(() => {
-    localStorage.setItem(RECENTS_KEY, JSON.stringify(recents));
-  }, [recents]);
+  // RTK Query replaces the old useEffect + fetch + loading/error state by
+  // hand. It fetches automatically whenever activeLocation changes, caches
+  // the result, and gives us isLoading/isError for free.
+  const { data: bundle, isLoading, isError } = useGetWeatherQuery(activeLocation);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetchWeather(activeLocation)
-      .then((data) => {
-        if (!cancelled) setBundle(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Couldn't load weather for this location. Check your connection and try again.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeLocation]);
+  const isFavorite = favorites.some((f) => f.id === activeLocation.id);
 
   function selectLocation(loc: GeoLocation) {
     setActiveLocation(loc);
     setView("home");
-    setRecents((prev) => {
-      const withoutDup = prev.filter((r) => r.id !== loc.id);
-      return [loc, ...withoutDup].slice(0, 12);
-    });
-  }
-
-  function removeRecent(id: number) {
-    setRecents((prev) => prev.filter((r) => r.id !== id));
+    dispatch(addRecent(loc));
   }
 
   function toggleFavorite() {
-    if (isFavorite(activeLocation.id)) {
-      removeFavorite(activeLocation.id);
+    if (isFavorite) {
+      dispatch(removeFavorite(activeLocation.id));
     } else {
-      addFavorite(activeLocation);
+      dispatch(addFavorite(activeLocation));
     }
+  }
+
+  if (loading) {
+    return <div className="state-message auth-loading">Preparing Weatherly...</div>;
+  }
+
+  if (!currentUser) {
+    return <AuthPage />;
   }
 
   return (
     <div className="app-shell">
-      <Sidebar active={view} onChange={setView} />
+      <Sidebar active={view} onChange={setView} onLogout={logout} />
       <main className="app-main">
         <header className="app-header">
           <SearchBar onSelect={selectLocation} />
@@ -98,14 +75,18 @@ function AppShell() {
         <div className="app-content">
           {view === "home" && (
             <>
-              {loading && !bundle && <div className="state-message">Loading weather…</div>}
-              {error && <div className="state-message state-message--error">{error}</div>}
+              {isLoading && !bundle && <div className="state-message">Loading weather...</div>}
+              {isError && (
+                <div className="state-message state-message--error">
+                  Couldn't load weather for this location. Check your connection and try again.
+                </div>
+              )}
               {bundle && (
                 <>
                   <CurrentWeather
                     bundle={bundle}
                     settings={settings}
-                    isFavorite={isFavorite(activeLocation.id)}
+                    isFavorite={isFavorite}
                     onToggleFavorite={toggleFavorite}
                   />
                   <HourlyForecast hourly={bundle.hourly} settings={settings} />
@@ -115,23 +96,11 @@ function AppShell() {
             </>
           )}
 
-          {view === "locations" && (
-            <LocationsView recents={recents} onSelect={selectLocation} onRemoveRecent={removeRecent} />
-          )}
-
+          {view === "locations" && <LocationsView onSelect={selectLocation} />}
           {view === "favorites" && <FavoritesView onSelect={selectLocation} />}
-
           {view === "settings" && <SettingsView />}
         </div>
       </main>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AppProvider>
-      <AppShell />
-    </AppProvider>
   );
 }

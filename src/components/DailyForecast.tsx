@@ -1,5 +1,5 @@
 import { getCondition } from "../lib/conditions";
-import { celsiusToFahrenheit } from "../lib/weatherApi";
+import { celsiusToFahrenheit } from "../lib/units";
 import type { AppSettings, DailyEntry } from "../types";
 
 interface Props {

@@ -1,15 +1,19 @@
 import { Home, Star, Trash2 } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { addFavorite, removeFavorite, removeRecent, setHomeLocation } from "../features/appSlice";
 import type { GeoLocation } from "../types";
 
 interface Props {
-  recents: GeoLocation[];
   onSelect: (loc: GeoLocation) => void;
-  onRemoveRecent: (id: number) => void;
 }
 
-export function LocationsView({ recents, onSelect, onRemoveRecent }: Props) {
-  const { settings, setHomeLocation, addFavorite, removeFavorite, isFavorite } = useAppContext();
+export function LocationsView({ onSelect }: Props) {
+  const dispatch = useAppDispatch();
+  const settings = useAppSelector((state) => state.app.settings);
+  const favorites = useAppSelector((state) => state.app.favorites);
+  const recents = useAppSelector((state) => state.app.recents);
+
+  const isFavorite = (id: number) => favorites.some((f) => f.id === id);
 
   return (
     <div className="view">
@@ -53,18 +57,20 @@ export function LocationsView({ recents, onSelect, onRemoveRecent }: Props) {
                 <button
                   className="icon-button"
                   title="Set as home"
-                  onClick={() => setHomeLocation(loc)}
+                  onClick={() => dispatch(setHomeLocation(loc))}
                 >
                   <Home size={16} />
                 </button>
                 <button
                   className={`icon-button ${isFavorite(loc.id) ? "icon-button--active" : ""}`}
                   title={isFavorite(loc.id) ? "Remove favorite" : "Add favorite"}
-                  onClick={() => (isFavorite(loc.id) ? removeFavorite(loc.id) : addFavorite(loc))}
+                  onClick={() =>
+                    dispatch(isFavorite(loc.id) ? removeFavorite(loc.id) : addFavorite(loc))
+                  }
                 >
                   <Star size={16} fill={isFavorite(loc.id) ? "currentColor" : "none"} />
                 </button>
-                <button className="icon-button" title="Remove" onClick={() => onRemoveRecent(loc.id)}>
+                <button className="icon-button" title="Remove" onClick={() => dispatch(removeRecent(loc.id))}>
                   <Trash2 size={16} />
                 </button>
               </div>

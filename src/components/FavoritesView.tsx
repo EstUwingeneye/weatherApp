@@ -1,5 +1,6 @@
 import { Star, Trash2 } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { removeFavorite } from "../features/appSlice";
 import type { GeoLocation } from "../types";
 
 interface Props {
@@ -7,7 +8,8 @@ interface Props {
 }
 
 export function FavoritesView({ onSelect }: Props) {
-  const { favorites, removeFavorite } = useAppContext();
+  const dispatch = useAppDispatch();
+  const favorites = useAppSelector((state) => state.app.favorites);
 
   return (
     <div className="view">
@@ -32,7 +34,11 @@ export function FavoritesView({ onSelect }: Props) {
                 </div>
               </button>
               <div className="location-card-actions">
-                <button className="icon-button icon-button--active" title="Remove favorite" onClick={() => removeFavorite(loc.id)}>
+                <button
+                  className="icon-button icon-button--active"
+                  title="Remove favorite"
+                  onClick={() => dispatch(removeFavorite(loc.id))}
+                >
                   <Trash2 size={16} />
                 </button>
               </div>

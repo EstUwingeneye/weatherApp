@@ -1,6 +1,6 @@
 import { Droplets, Wind, Eye, Star } from "lucide-react";
 import { getCondition } from "../lib/conditions";
-import { celsiusToFahrenheit, kmhToMph } from "../lib/weatherApi";
+import { celsiusToFahrenheit, kmhToMph } from "../lib/units";
 import { SkyBackground } from "./SkyBackground";
 import type { AppSettings, WeatherBundle } from "../types";
 

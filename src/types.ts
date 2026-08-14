@@ -57,4 +57,13 @@ export interface AppSettings {
   homeLocation: GeoLocation | null;
 }
 
+export interface UserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  provider: "password" | "google";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type ViewKey = "home" | "locations" | "favorites" | "settings";
